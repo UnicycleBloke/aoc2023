@@ -4,6 +4,8 @@
 template <typename T>
 auto part1(const T& input)
 {
+    aoc::timer timer;
+
     int result = 0;
     for (auto line: input)
     {
@@ -31,6 +33,8 @@ auto part1(const T& input)
 template <typename T>
 auto part2(const T& input)
 {
+    aoc::timer timer;
+
     int result = 0;
     for (auto line: input)
     {
