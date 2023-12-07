@@ -33,8 +33,6 @@ struct Hand
     vector<Card> cards;
     int bid;
     Type type;
-    int first;
-    int second;
 };
 
 
@@ -47,16 +45,6 @@ Type type_of_hand(const Hand& hand)
     if ((hand.cards[0].count == 2) && (hand.cards[1].count == 2)) return TwoPair;
     if (hand.cards[0].count == 2) return OnePair;
     return HighCard;
-}
-
-
-void score_hand(Hand& hand)
-{
-    hand.type   = type_of_hand(hand);
-    hand.first  = hand.cards[0].value;
-    hand.second = hand.cards[0].value;
-    if (hand.type != FiveOfAKind)
-        hand.second = hand.cards[1].value;
 }
 
 
@@ -87,6 +75,8 @@ auto parse1(T& lines)
     {
         auto s = aoc::split(line, " ");
 
+        // Create a map to count the cards of each value. 
+        // There must be a cleaner way to do this.
         map<int, int> cards;
         for (auto c: aoc::range(5))
         {
@@ -97,14 +87,17 @@ auto parse1(T& lines)
                 cards[value] = cards[value] + 1;
         }
 
+        // The Hand has a vector of (count, value), sorted by count
+        // for ease of Type identification.    
         Hand hand;
         for (auto [k, v]: cards)
             hand.cards.push_back(Card{k, v});
         sort(hand.cards.begin(), hand.cards.end());
 
+        // We need the original hand for second ranking rule.
         hand.hand = s[0];
         hand.bid = stoi(s[1]); 
-        score_hand(hand);
+        hand.type = type_of_hand(hand);
         hands.push_back(hand);
     }
     return hands;
@@ -151,6 +144,7 @@ auto parse2(T& lines)
                 cards[value] = cards[value] + 1;
         }
 
+        // Keep the jokers to one side when creating (count, value) pairs.
         Hand hand;
         int jokers = 0;
         for (auto [k, v]: cards)
@@ -162,7 +156,9 @@ auto parse2(T& lines)
         }
         sort(hand.cards.begin(), hand.cards.end());
 
-        if (hand.cards.size() == 0) // All jokers
+        // Add all jokers to the most important card value. Need to 
+        // handle the case where all the cards are jokers.
+        if (hand.cards.size() == 0) 
             hand.cards.push_back(Card{from_char2('A'), jokers});
         else
             hand.cards[0].count += jokers;
