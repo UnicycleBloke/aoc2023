@@ -251,15 +251,30 @@ public:
         auto end = cr::steady_clock::now();
         cr::duration<double> diff = end - m_start;
         if (m_label.size() > 0)
-            std::cout << "Time elapsed: " << m_label << ": " << (diff.count() * 1000) << "ms\n";
+            //std::cout << "Time elapsed: " << m_label << ": " << (diff.count() * 1000) << "ms\n";
+            std::cout << "Time elapsed: " << m_label << ": " << (diff.count() * 1000000) << "us\n";
         else 
-            std::cout << "Time elapsed: " << (diff.count() * 1000) << "ms\n";
+            //std::cout << "Time elapsed: " << (diff.count() * 1000) << "ms\n";
+            std::cout << "Time elapsed: " << (diff.count() * 1000000) << "us\n";
     }
 
 private:
     cr::time_point<cr::steady_clock> m_start{}; 
     std::string m_label{};
 };
+
+
+template <typename T>
+T gcd(T a, T b)
+{
+    while (b != 0)
+    {
+        T t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
 
 
 } // namespace aoc {
