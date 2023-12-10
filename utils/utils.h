@@ -277,6 +277,13 @@ T gcd(T a, T b)
 }
 
 
+template <typename T>
+T lcm(T a, T b)
+{
+    return abs(a) * (abs(b) / gcd(a, b));
+}
+
+
 } // namespace aoc {
 
 
