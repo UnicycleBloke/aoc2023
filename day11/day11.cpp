@@ -1,51 +1,110 @@
 #include "utils.h"
 
 
-template <typename T>
-auto part1(const T& input)
-{
-    aoc::timer timer;
-
-    return 0;
-}
+struct Star
+{ 
+    long row; 
+    long col; 
+};
 
 
 template <typename T>
-auto part2(T& input)
+auto solve(const T& input)
 {
     aoc::timer timer;
 
-    return 0;
+    long total = 0;
+    for (auto i: aoc::range(input.size()))
+    {
+        auto s1 = input[i];
+        for (auto j: aoc::range(i + 1U, input.size()))
+        {
+            auto s2 = input[j];
+
+            auto path = abs(s1.row - s2.row) + abs(s1.col - s2.col);
+            total += path;
+        }
+    }
+
+    return total;
 }
 
 
-// vector<tuple<Args...>>
-//auto lines = aoc::read_lines<int,int,int,int>(filename, R"((\d+)-(\d+),(\d+)-(\d+))");
+set<size_t> find_empty_cols(const vector<string>& lines)
+{
+    set<size_t> result;
+    for (auto col: aoc::range(lines[0].size()))
+    {   
+        bool empty = true;     
+        for (auto row: aoc::range(lines.size()))
+        {
+            if (lines[row][col] != '.')
+            {
+                empty = false;
+                break; 
+            }
+        }        
+        if (empty) result.insert(col); 
+    }
+    return result;
+}
 
-// vector<string>    
-//auto lines = aoc::read_lines(filename, aoc::Blanks::Suppress); 
 
-// Replace all substrings matching "search" with "replace".
-//std::string replace(std::string source, const std::string& search, const std::string& replace);
+set<size_t> find_empty_rows(const vector<string>& lines)
+{
+    set<size_t> result;
+    for (auto row: aoc::range(lines.size()))
+    {
+        bool empty = true;     
+        for (auto col: aoc::range(lines[0].size()))
+        {
+            if (lines[row][col] != '.')
+            {
+                empty = false; 
+                break; 
+            }
+        }        
+        if (empty) result.insert(row); 
+    }
+    return result;
+}
 
-// Split a delimited string of tokens into a vector of string tokens. Trims substrings by default and drops trimmed 
-// tokens which are empty by default. Not convinced how useful the option are, but you never know.
-//std::vector<std::string> split(std::string source, std::string delim, Blanks allow_blanks = Blanks::Suppress, Trim trim_subs = Trim::Yes);
 
-// vector (size_type n, const value_type& val = value_type(),
-//vector<int> row(COLS, 0);
-//vector<vector<int>> grid(ROWS, row);
+vector<Star> make_stars(const vector<string>& lines, 
+    set<size_t>& empty_cols, set<size_t>& empty_rows, long grow)
+{
+    vector<Star> stars;
+
+    size_t row2 = 0;
+    for (auto row: aoc::range(lines.size()))
+    {
+        size_t col2 = 0;
+        for (auto col: aoc::range(lines[0].size()))
+        {
+            if (lines[row][col] == '#') 
+                stars.push_back({(long)row2, (long)col2});
+            col2 += (empty_cols.find(col) != empty_cols.end()) ? grow : 1;
+        }
+        row2 += (empty_rows.find(row) != empty_rows.end()) ? grow : 1;
+    }
+
+    return stars;
+}
+
+
 void run(const char* filename)
 {
     auto lines = aoc::read_lines(filename);
+    set<size_t> empty_cols = find_empty_cols(lines);
+    set<size_t> empty_rows = find_empty_rows(lines);
 
-    auto p1 = part1(lines);
+    auto p1 = solve(make_stars(lines, empty_cols, empty_rows, 2));
     cout << "Part1: " << p1 << '\n';
-    aoc::check_result(p1, 0);
+    aoc::check_result(p1, 9684228);
 
-    auto p2 = part2(lines);
+    auto p2 = solve(make_stars(lines, empty_cols, empty_rows, 1'000'000));
     cout << "Part2: " << p2 << '\n';
-    aoc::check_result(p2, 0);
+    aoc::check_result(p2, 483844716556);
 }
 
 
