@@ -3,15 +3,36 @@
 
 struct Report
 {
-    string input;
     string corrupt;
     string pattern;
+    vector<int> groups;
 };
 
 
-int matches(string corrupt, size_t index, const string& pattern)
+int matches(string corrupt, size_t index, const string& pattern, const vector<int>& groups)
 {
     int result = 0;
+
+    // check whether the first groups match (up to index)
+    vector<int> g;
+    size_t i = 0;
+    int    num = 0;
+    while (i < index)
+    {
+        if (corrupt[i] == '#')
+        {
+            ++num;
+        }
+        else if (corrupt[i] == '.')
+        {
+            if (num > 0) g.push_back(num);
+            num = 0;
+        }
+        ++i;
+    }
+    for (auto i: aoc::range(g.size()))
+        if (g[i] != groups[i]) return 0;
+
 
     if (index >= corrupt.size())
     {
@@ -23,24 +44,44 @@ int matches(string corrupt, size_t index, const string& pattern)
     while ((index < corrupt.size()) && (corrupt[index] != '?')) ++index;
     
     corrupt[index] = '.';
-    result += matches(corrupt, index, pattern);
+    result += matches(corrupt, index, pattern, groups);
 
     corrupt[index] = '#';
-    result += matches(corrupt, index, pattern);
+    result += matches(corrupt, index, pattern, groups);
 
     return result;
 }
 
 
 template <typename T>
-auto part1(const T& reports)
+auto part1(const T& lines)
 {
     aoc::timer timer;
+
+    vector<Report> reports;
+    for (auto line: lines)
+    {
+        auto s = aoc::split(line, " ");
+        auto t = aoc::split(s[1], ",");
+
+        Report report;
+        ostringstream os;
+        os << "\\.*";
+        for (auto c: t)
+        {
+            report.groups.push_back(stoi(c));
+            for (auto d: aoc::range(stoi(c))) os << '#';
+            os << "\\.+";
+        }
+        report.corrupt = s[0] + ".";
+        report.pattern = os.str(); 
+        reports.push_back(report);
+    }
 
     int total_ways = 0;
     for (const auto& r: reports)
     {
-        auto ways = matches(r.corrupt, 0, r.pattern);
+        auto ways = matches(r.corrupt, 0, r.pattern, r.groups);
         cout << "ways = " << ways << '\n';
         total_ways += ways;
     }    
@@ -50,11 +91,41 @@ auto part1(const T& reports)
 
 
 template <typename T>
-auto part2(T& input)
+auto part2(T& lines)
 {
     aoc::timer timer;
 
-    return 0;
+    vector<Report> reports;
+    for (auto line: lines)
+    {
+        auto s  = aoc::split(line, " ");
+        auto s0 = s[0] + "?" + s[0] + "?" + s[0] + "?" + s[0] + "?" + s[0];
+        auto s1 = s[1] + "," + s[1] + "," + s[1] + "," + s[1] + "," + s[1];    
+        auto t = aoc::split(s1, ",");
+
+        Report report;
+        ostringstream os;
+        os << "\\.*";
+        for (auto c: t)
+        {
+            report.groups.push_back(stoi(c));
+            for (auto d: aoc::range(stoi(c))) os << '#';
+            os << "\\.+";
+        }
+        report.corrupt = s0 + ".";
+        report.pattern = os.str(); 
+        reports.push_back(report);
+    }
+
+    int total_ways = 0;
+    for (const auto& r: reports)
+    {
+        auto ways = matches(r.corrupt, 0, r.pattern, r.groups);
+        cout << "ways = " << ways << '\n';
+        total_ways += ways;
+    }    
+
+    return total_ways / 2;
 }
 
 
@@ -62,50 +133,11 @@ void run(const char* filename)
 {
     auto lines = aoc::read_lines(filename);
 
-    vector<Report> reports;
-    for (auto line: lines)
-    {
-        auto s = aoc::split(line, " ");
-        auto t = aoc::split(s[1], ",");
-        ostringstream os;
-
-        os << "\\.*";
-        for (auto c: t)
-        {
-            for (auto d: aoc::range(stoi(c))) os << '#';
-            os << "\\.+";
-        }
-
-        reports.push_back({line, s[0] + ".", os.str()});
-    }
-
-    auto p1 = part1(reports);
+    auto p1 = part1(lines);
     cout << "Part1: " << p1 << '\n';
     aoc::check_result(p1, 0);
 
-    vector<Report> reports2;
-    for (auto line: lines)
-    {
-        auto s  = aoc::split(line, " ");
-        auto s0 = s[0] + "?" + s[0] + "?" + s[0] + "?" + s[0] + "?" + s[0];
-        auto s1 = s[1] + "," + s[1] + "," + s[1] + "," + s[1] + "," + s[1];    
-
-        cout << s0 << ' ' << s1 << '\n';    
-
-        auto t = aoc::split(s1, ",");
-        ostringstream os;
-
-        os << "\\.*";
-        for (auto c: t)
-        {
-            for (auto d: aoc::range(stoi(c))) os << '#';
-            os << "\\.+";
-        }
-
-        reports2.push_back({line, s0 + ".", os.str()});
-    }
-
-    auto p2 = part1(reports2);
+    auto p2 = part2(lines);
     cout << "Part2: " << p2 << '\n';
     aoc::check_result(p2, 0);
 }
