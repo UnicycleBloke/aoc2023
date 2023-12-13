@@ -1,55 +1,74 @@
 #include "utils.h"
 
 
-struct Report
+bool matches2(const string& input, size_t pos, size_t len)
 {
-    string corrupt;
-    string pattern;
-    vector<int> groups;
-};
+    // Ensure that the preceding character can be a . (need . or ?)
+    if ((pos > 0) && (input[pos-1] == '#')) return false;
+    // Can't match if the group overruns the input
+    if ((pos + len) > input.size()) return false;
+    // Ensure that the group items can all be # (need # or ?)
+    for (int i = 0; i < len; ++i) if (input[pos+i] == '.') return false;   
+    // If we are the end of the input there is no need for a following .
+    if ((pos + len) == input.size()) return true;
+    // Ensure that the following character can be a . (need . or ?)
+    return (input[pos + len] != '#');
+}
 
 
-int matches(string corrupt, size_t index, const string& pattern, const vector<int>& groups)
+// After a day of barking up the wrong tree I remembered that memoising is a good solution.
+// I really must get this technique into my regular vocabulary.
+using Memo    = pair<size_t, size_t>;
+using MemoMap = map<Memo, size_t>;
+
+
+size_t calculate(const string& input, const vector<size_t>& groups, size_t pos, size_t grp, MemoMap& memo_map)
 {
-    int result = 0;
+    Memo memo = make_pair(pos, grp);
+    if (memo_map.find(memo) != memo_map.end()) return memo_map[memo];
 
-    // check whether the first groups match (up to index)
-    vector<int> g;
-    size_t i = 0;
-    int    num = 0;
-    while (i < index)
+    if (grp >= groups.size())
     {
-        if (corrupt[i] == '#')
-        {
-            ++num;
-        }
-        else if (corrupt[i] == '.')
-        {
-            if (num > 0) g.push_back(num);
-            num = 0;
-        }
-        ++i;
-    }
-    for (auto i: aoc::range(g.size()))
-        if (g[i] != groups[i]) return 0;
-
-
-    if (index >= corrupt.size())
-    {
-        regex  re(pattern);
-        smatch m;
-        return regex_match(corrupt, m, re) ? 1 : 0;
+        for (auto p: aoc::range(pos, input.size())) 
+            if (input[p] == '#') return 0;
+        return 1;
     }
 
-    while ((index < corrupt.size()) && (corrupt[index] != '?')) ++index;
-    
-    corrupt[index] = '.';
-    result += matches(corrupt, index, pattern, groups);
+    size_t result = 0;
+    while (pos < input.size())
+    {
+        if (matches2(input, pos, groups[grp]))
+        {
+            result += calculate(input, groups, pos + groups[grp] + 1, grp + 1, memo_map);
+        }
 
-    corrupt[index] = '#';
-    result += matches(corrupt, index, pattern, groups);
+        if (input[pos] == '#') break;
+        ++pos;
+    }
 
+    memo_map[memo] = result;
     return result;
+}
+
+
+size_t calculate(const string& s0, const string& s1)
+{
+    auto t = aoc::split(s1, ",");
+
+    vector<size_t> groups;
+    ostringstream os;
+    os << "\\.*";
+    for (auto c: t)
+    {
+        groups.push_back(stoi(c));
+        for (auto d: aoc::range(stoi(c))) os << '#';
+        os << "\\.+";
+    }
+    auto corrupt = s0 + ".";
+    auto pattern = os.str(); 
+
+    MemoMap memo_map;
+    return calculate(corrupt, groups, 0, 0, memo_map);
 }
 
 
@@ -58,35 +77,16 @@ auto part1(const T& lines)
 {
     aoc::timer timer;
 
-    vector<Report> reports;
+    size_t result = 0;
     for (auto line: lines)
     {
-        auto s = aoc::split(line, " ");
-        auto t = aoc::split(s[1], ",");
-
-        Report report;
-        ostringstream os;
-        os << "\\.*";
-        for (auto c: t)
-        {
-            report.groups.push_back(stoi(c));
-            for (auto d: aoc::range(stoi(c))) os << '#';
-            os << "\\.+";
-        }
-        report.corrupt = s[0] + ".";
-        report.pattern = os.str(); 
-        reports.push_back(report);
-    }
-
-    int total_ways = 0;
-    for (const auto& r: reports)
-    {
-        auto ways = matches(r.corrupt, 0, r.pattern, r.groups);
-        cout << "ways = " << ways << '\n';
-        total_ways += ways;
+        auto s  = aoc::split(line, " ");
+        auto s0 = s[0];
+        auto s1 = s[1];
+        result += calculate(s0, s1);    
     }    
 
-    return total_ways / 2;
+    return result;
 }
 
 
@@ -95,37 +95,16 @@ auto part2(T& lines)
 {
     aoc::timer timer;
 
-    vector<Report> reports;
+    size_t result = 0;
     for (auto line: lines)
     {
         auto s  = aoc::split(line, " ");
         auto s0 = s[0] + "?" + s[0] + "?" + s[0] + "?" + s[0] + "?" + s[0];
-        auto s1 = s[1] + "," + s[1] + "," + s[1] + "," + s[1] + "," + s[1];    
-        auto t = aoc::split(s1, ",");
-
-        Report report;
-        ostringstream os;
-        os << "\\.*";
-        for (auto c: t)
-        {
-            report.groups.push_back(stoi(c));
-            for (auto d: aoc::range(stoi(c))) os << '#';
-            os << "\\.+";
-        }
-        report.corrupt = s0 + ".";
-        report.pattern = os.str(); 
-        reports.push_back(report);
-    }
-
-    int total_ways = 0;
-    for (const auto& r: reports)
-    {
-        auto ways = matches(r.corrupt, 0, r.pattern, r.groups);
-        cout << "ways = " << ways << '\n';
-        total_ways += ways;
+        auto s1 = s[1] + "," + s[1] + "," + s[1] + "," + s[1] + "," + s[1];
+        result += calculate(s0, s1);    
     }    
 
-    return total_ways / 2;
+    return result;
 }
 
 
@@ -135,11 +114,11 @@ void run(const char* filename)
 
     auto p1 = part1(lines);
     cout << "Part1: " << p1 << '\n';
-    aoc::check_result(p1, 0);
+    aoc::check_result(p1, 7191U);
 
     auto p2 = part2(lines);
     cout << "Part2: " << p2 << '\n';
-    aoc::check_result(p2, 0);
+    aoc::check_result(p2, 6512849198636U);
 }
 
 
