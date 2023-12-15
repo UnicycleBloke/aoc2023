@@ -1,12 +1,29 @@
 #include "utils.h"
 
 
+auto calc_hash(const string& input)
+{
+    int hash = 0;
+    for (auto c: input)
+    {
+        hash += static_cast<int>(c);
+        hash *= 17;
+        hash %= 256;
+    }
+    return hash;
+}
+
+
 template <typename T>
 auto part1(const T& input)
 {
     aoc::timer timer;
+     
+    int result = 0; 
+    for (auto& line: input)
+        result += calc_hash(line);
 
-    return 0;
+    return result;
 }
 
 
@@ -15,37 +32,80 @@ auto part2(T& input)
 {
     aoc::timer timer;
 
-    return 0;
+    struct Box
+    {
+        map<string, int> labels;
+        vector<string>   lenses;
+    };
+
+    array<Box, 256> boxes;
+
+    for (auto& line: input)    
+    {
+        {
+            bool match = false;
+            auto [label, op] = aoc::parse_line<string, char>(R"((\w+)(.))", line, match);
+            if (match)
+            {
+                auto b = calc_hash(label);
+                //cout << "Box " << b << " " << label << op << "\n";
+
+                auto& lenses = boxes[b].lenses;
+                lenses.erase(remove(lenses.begin(), lenses.end(), label), lenses.end());
+            }
+        }
+
+        {
+            bool match = false;
+            auto [label, op, len] = aoc::parse_line<string, char, int>(R"((\w+)(.)(\d))", line, match);
+            if (match)
+            {
+                auto b = calc_hash(label);
+                //cout << "Box " << b << " " << label << op << len << "\n";
+
+                auto& box = boxes[b];
+                if (find(box.lenses.begin(), box.lenses.end(), label) == box.lenses.end())
+                    box.lenses.push_back(label);
+                box.labels[label] = len;
+            }
+        }
+    }
+
+    int result = 0;
+    for (auto b: aoc::range(256))
+    {
+        auto& box = boxes[b];
+
+        // if (box.lenses.size() > 0) cout << "Box: " << b << " ";         
+        // for (auto& lens: box.lenses)
+        // {
+        //     cout << "[" << lens << " " << box.labels[lens] << "]";
+        // }
+        // if (box.lenses.size() > 0) cout << "\n";
+
+        for (auto s: aoc::range(box.lenses.size()))
+        {
+            auto power = (b + 1) * (s + 1) * box.labels[box.lenses[s]];
+            result += power;
+        }
+    }
+
+    return result;
 }
 
 
-// vector<tuple<Args...>>
-//auto lines = aoc::read_lines<int,int,int,int>(filename, R"((\d+)-(\d+),(\d+)-(\d+))");
-
-// vector<string>    
-//auto lines = aoc::read_lines(filename, aoc::Blanks::Suppress); 
-
-// Replace all substrings matching "search" with "replace".
-//std::string replace(std::string source, const std::string& search, const std::string& replace);
-
-// Split a delimited string of tokens into a vector of string tokens. Trims substrings by default and drops trimmed 
-// tokens which are empty by default. Not convinced how useful the option are, but you never know.
-//std::vector<std::string> split(std::string source, std::string delim, Blanks allow_blanks = Blanks::Suppress, Trim trim_subs = Trim::Yes);
-
-// vector (size_type n, const value_type& val = value_type(),
-//vector<int> row(COLS, 0);
-//vector<vector<int>> grid(ROWS, row);
 void run(const char* filename)
 {
     auto lines = aoc::read_lines(filename);
+    auto input = aoc::split(lines[0], ",");
 
-    auto p1 = part1(lines);
+    auto p1 = part1(input);
     cout << "Part1: " << p1 << '\n';
-    aoc::check_result(p1, 0);
+    aoc::check_result(p1, 511257);
 
-    auto p2 = part2(lines);
+    auto p2 = part2(input);
     cout << "Part2: " << p2 << '\n';
-    aoc::check_result(p2, 0);
+    aoc::check_result(p2, 239484);
 }
 
 
