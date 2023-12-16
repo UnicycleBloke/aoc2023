@@ -1,88 +1,93 @@
 #include "utils.h"
 
 
-enum class Dir { L, R, U, D };
-using Move = tuple<int, int, Dir>;
+constexpr int Left  = 1;
+constexpr int Right = 2;
+constexpr int Up    = 4;
+constexpr int Down  = 8;
+
+
+using Move = tuple<int, int, int>;
 
 
 template <typename T>
 auto reflect(const T& input, Move start)
 {
     // Surely not the most efficient algo, especially for P2, but not terrible.
-    // Might be faster with a vector for next Moves and a grid of ints (bitfields).
-    // in place of the visited set.
+    // Made faster with a grid of ints (bitfields) in place of the visited set.
+    // Made faster be using a vector instead of a set for the moves in the next step.
 
     // Keep track of any Moves we have already executed, so as to avoid looping.
     // A move comprises the location and direction since it is possible to visit the 
     // same location but from a different direction.
-    set<Move> visited;
+    vector<int> row(input[0].size(), 0);
+    vector<vector<int>> visited(input.size(), row);
 
     // The set of Moves to execute in the current step. This will be a growing set 
     // as a result of the bifurcations, but will diminish as all the possible Moves 
     // are exhausted.
-    set<Move> next;
-    next.insert(start);
+    vector<Move> next;
+    next.push_back(start);
 
     while (next.size() > 0)
     {
         // The set of Moves to execute in the next step. 
-        set<Move> next2;
+        vector<Move> next2;
         for (auto move: next)
         {
-            // Avoid loops - could just make a grid with a bitfield of NESW instead
-            if (visited.find(move) != visited.end())
-                continue;
-            visited.insert(move);
-
             auto [row, col, dir] = move;
+
+            if (visited[row][col] & dir) continue;
+            visited[row][col] |= dir;
+
             switch (dir)
             {
-                case Dir::L:
+                case Left:
                     switch (input[row][col])
                     {
                         // Note there is no action for 'X', which means we have gone off the edge.
                         case '-':  
-                        case '.':  next2.insert(make_tuple(row, col-1, Dir::L)); break;
-                        case '\\': next2.insert(make_tuple(row-1, col, Dir::U)); break;
-                        case '/':  next2.insert(make_tuple(row+1, col, Dir::D)); break;
-                        case '|':  next2.insert(make_tuple(row-1, col, Dir::U)); 
-                                   next2.insert(make_tuple(row+1, col, Dir::D)); break;
+                        case '.':  next2.push_back(make_tuple(row, col-1, Left)); break;
+                        case '\\': next2.push_back(make_tuple(row-1, col, Up)); break;
+                        case '/':  next2.push_back(make_tuple(row+1, col, Down)); break;
+                        case '|':  next2.push_back(make_tuple(row-1, col, Up)); 
+                                   next2.push_back(make_tuple(row+1, col, Down)); break;
                     }
                     break;
 
-                case Dir::R:
+                case Right:
                     switch (input[row][col])
                     {
                         case '-':  
-                        case '.':  next2.insert(make_tuple(row, col+1, Dir::R)); break;
-                        case '\\': next2.insert(make_tuple(row+1, col, Dir::D)); break;
-                        case '/':  next2.insert(make_tuple(row-1, col, Dir::U)); break;
-                        case '|':  next2.insert(make_tuple(row+1, col, Dir::D)); 
-                                   next2.insert(make_tuple(row-1, col, Dir::U)); break;
+                        case '.':  next2.push_back(make_tuple(row, col+1, Right)); break;
+                        case '\\': next2.push_back(make_tuple(row+1, col, Down)); break;
+                        case '/':  next2.push_back(make_tuple(row-1, col, Up)); break;
+                        case '|':  next2.push_back(make_tuple(row+1, col, Down)); 
+                                   next2.push_back(make_tuple(row-1, col, Up)); break;
                     }
                     break;
 
-                case Dir::U:
+                case Up:
                     switch (input[row][col])
                     {
                         case '|':  
-                        case '.':  next2.insert(make_tuple(row-1, col, Dir::U)); break;
-                        case '\\': next2.insert(make_tuple(row, col-1, Dir::L)); break;                       
-                        case '/':  next2.insert(make_tuple(row, col+1, Dir::R)); break;
-                        case '-':  next2.insert(make_tuple(row, col-1, Dir::L)); 
-                                   next2.insert(make_tuple(row, col+1, Dir::R)); break;
+                        case '.':  next2.push_back(make_tuple(row-1, col, Up)); break;
+                        case '\\': next2.push_back(make_tuple(row, col-1, Left)); break;                       
+                        case '/':  next2.push_back(make_tuple(row, col+1, Right)); break;
+                        case '-':  next2.push_back(make_tuple(row, col-1, Left)); 
+                                   next2.push_back(make_tuple(row, col+1, Right)); break;
                     }
                     break;
 
-                case Dir::D:
+                case Down:
                     switch (input[row][col])
                     {
                         case '|':  
-                        case '.':  next2.insert(make_tuple(row+1, col, Dir::D)); break;
-                        case '\\': next2.insert(make_tuple(row, col+1, Dir::R)); break;
-                        case '/':  next2.insert(make_tuple(row, col-1, Dir::L)); break;
-                        case '-':  next2.insert(make_tuple(row, col+1, Dir::R)); 
-                                   next2.insert(make_tuple(row, col-1, Dir::L)); break;
+                        case '.':  next2.push_back(make_tuple(row+1, col, Down)); break;
+                        case '\\': next2.push_back(make_tuple(row, col+1, Right)); break;
+                        case '/':  next2.push_back(make_tuple(row, col-1, Left)); break;
+                        case '-':  next2.push_back(make_tuple(row, col+1, Right)); 
+                                   next2.push_back(make_tuple(row, col-1, Left)); break;
                     }
                     break;
             }
@@ -91,11 +96,16 @@ auto reflect(const T& input, Move start)
         next = next2;
     } 
 
-    set<Move> counter;
-    for (auto [row, col, dir]: visited)
-        if ((row > 0) && (row < (input.size()-1)) && (col > 0) && (col < (input[0].size() - 1)))
-            counter.insert(make_tuple(row, col, Dir::L));
-    return counter.size();
+    size_t counter = 0;
+    for (auto r: aoc::range(1U, visited.size()-1U))
+    {
+        for (auto c: aoc::range(1U, visited[0].size()-1U))
+        {
+            counter += (visited[r][c] > 0);
+        }
+
+    }
+    return counter;
 }
 
 
@@ -104,7 +114,7 @@ auto part1(const T& input)
 {
     aoc::timer timer;
 
-    return reflect(input, make_tuple(1, 1, Dir::R));
+    return reflect(input, make_tuple(1, 1, Right));
 }
 
 
@@ -117,14 +127,14 @@ auto part2(T& input)
 
     for (auto row: aoc::range(1U, input.size()-1U))
     {
-        energised = max(energised, reflect(input, make_tuple(row, 1, Dir::R)));
-        energised = max(energised, reflect(input, make_tuple(row, input[0].size()-2, Dir::L)));
+        energised = max(energised, reflect(input, make_tuple(row, 1, Right)));
+        energised = max(energised, reflect(input, make_tuple(row, input[0].size()-2, Left)));
     }
 
     for (auto col: aoc::range(1U, input[0].size()-1U))
     {
-        energised = max(energised, reflect(input, make_tuple(1, col, Dir::D)));
-        energised = max(energised, reflect(input, make_tuple(input.size()-2, col, Dir::U)));
+        energised = max(energised, reflect(input, make_tuple(1, col, Down)));
+        energised = max(energised, reflect(input, make_tuple(input.size()-2, col, Up)));
     }
 
     return energised;
