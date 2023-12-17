@@ -230,6 +230,10 @@ auto comprehend(const Src src,
 }
 
 
+vector<string> make_grid_with_border(const vector<string>& input, size_t width, char value);
+vector<string> read_grid_with_border(std::string filename, size_t width, char value);
+
+
 template <typename T>
 int sgn(T val)
 {

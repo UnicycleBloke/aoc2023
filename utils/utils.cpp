@@ -127,4 +127,27 @@ std::vector<std::vector<std::string>> read_groups(std::string filename)
 }
 
 
+vector<string> make_grid_with_border(const vector<string>& input, size_t width, char value)
+{
+    string extra(width, value);
+    string blank(input[0].size() + 2*width, value);
+
+    vector<string> grid;
+    for (auto i: range(width))
+        grid.push_back(blank);     
+    for (const auto& line: input)
+        grid.push_back(extra + line + extra);
+    for (auto i: range(width))
+        grid.push_back(blank);  
+    return grid;
+}
+
+
+vector<string> read_grid_with_border(std::string filename, size_t width, char value)
+{
+    auto lines = read_lines(filename);
+    return make_grid_with_border(lines, width, value);
+}
+
+
 } // namespace aoc {
