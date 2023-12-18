@@ -15,13 +15,19 @@ auto part1(T& blocks, NodeSet& nodes, NodeMap& edges)
 {
     aoc::timer timer;
 
-    Node start{0, 0, Right, 1};
+    Node source{0, 0, Right, 1};
 
-    map<Node, size_t> heat_map;
-    heat_map[start] = 0;
+    map<Node, size_t> heat_map; // distance
+    for (auto node: nodes)
+    {
+        heat_map[node] = 0xFFFF'FFFF;
+    }
+    heat_map[source] = 0;
+
+    set<Node> visited;
 
     vector<Node> next;
-    next.push_back(start);
+    next.push_back(source);
 
     // BFS starting at the node in the top left and moving right
     while (next.size() > 0)
@@ -35,12 +41,12 @@ auto part1(T& blocks, NodeSet& nodes, NodeMap& edges)
                 auto [row2, col2, dir2, cnt2] = node2;
                 size_t heat2 = size_t(blocks[row2][col2] - '0');
 
-                bool visited = heat_map.find(node2) != heat_map.end();
-                size_t old_heat = visited ? heat_map[node2] : 0xFFFF'FFFF;
+                size_t old_heat = heat_map[node2];
                 size_t new_heat = heat_map[node] + heat2;
                 heat_map[node2] = min(old_heat, new_heat);
 
-                if (!visited) next2.push_back(node2);
+                if (visited.find(node2) == visited.end()) 
+                    next2.push_back(node2);
             };
 
             // The node has at most 4 egdes other nodes. Probably only three due to not reversing 
@@ -49,6 +55,8 @@ auto part1(T& blocks, NodeSet& nodes, NodeMap& edges)
             {
                 update(nodex);
             }
+
+            visited.insert(node);
         }
 
         next = next2;
