@@ -5,81 +5,81 @@ enum Dir { Left, Right, Up, Down, None };
 
 
 // row, col, entry direction, direction count
-using  Node     = tuple<size_t, size_t, Dir, int>; 
-using  NodeSet  = set<Node>;
-using  NodeMap  = map<Node, map<Dir, Node>>;
+using  Vertex   = tuple<size_t, size_t, Dir, int>; 
+using  Vertices = set<Vertex>;
+using  Edges    = map<Vertex, vector<pair<Vertex, int>>>;
 
 
 template <typename T>
-auto part1(T& blocks, NodeSet& nodes, NodeMap& edges)
+auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
 {
+    constexpr size_t AOC_INF = 0xFFFF'FFFF;
+
     aoc::timer timer;
 
-    Node source{0, 0, Right, 1};
+    Vertex source{0, 0, Right, 1};
 
-    map<Node, size_t> heat_map; // distance
-    for (auto node: nodes)
+    // Initialise a map of distances from the source. 
+    // Everything is infinity for now except the source itself, which is zero.
+    map<Vertex, size_t> dist;
+    for (auto v: vertices)
     {
-        heat_map[node] = 0xFFFF'FFFF;
+        dist[v] = AOC_INF;
     }
-    heat_map[source] = 0;
+    dist[source] = 0;
 
-    set<Node> visited;
+    // Create a map of predecessor nodes. We don't really need this. 
+    map<Vertex, Vertex> pred;
 
-    vector<Node> next;
-    next.push_back(source);
+    // The set of vertices which have not yet been visited.
+    set<Vertex> queue = vertices;
+    // for (auto v: vertices)
+    // {
+    //     queue.insert(v);
+    // }
 
-    // BFS starting at the node in the top left and moving right
-    while (next.size() > 0)
+    while (queue.size() > 0)
     {
-        vector<Node> next2;
+        cout << queue.size() << " ";
 
-        for (auto node: next)
+        // Find the vertex in the queue with the lowest distance from the source.
+        // Default to the first item in the map in case all are infinity - is this possible?
+        Vertex min_v = *queue.begin();
+        size_t min_dist = AOC_INF;
+        for (auto v: queue)
         {
-            auto update = [&](Node node2)
+            if (dist[v] < min_dist)
             {
-                auto [row2, col2, dir2, cnt2] = node2;
-                size_t heat2 = size_t(blocks[row2][col2] - '0');
-
-                size_t old_heat = heat_map[node2];
-                size_t new_heat = heat_map[node] + heat2;
-                heat_map[node2] = min(old_heat, new_heat);
-
-                if (visited.find(node2) == visited.end()) 
-                    next2.push_back(node2);
-            };
-
-            // The node has at most 4 egdes other nodes. Probably only three due to not reversing 
-            // direction, but this doens't seem to make any difference.
-            for (auto [dirx, nodex]: edges[node])
-            {
-                update(nodex);
+                min_dist = dist[v];
+                min_v    = v;
             }
-
-            visited.insert(node);
         }
 
-        next = next2;
+        // Go through the outbound edges from the minimum distance vertex.
+        for (auto [v2, cost]: edges[min_v])
+        {
+            dist[v2] = min(dist[v2], dist[min_v] + cost);
+            pred[v2] = min_v;
+        }
+
+        // Mark the vertex we just dealt with as finished/visited.
+        queue.erase(min_v);
     }
 
-    // Just printing stuff.
-    vector<size_t>         row(blocks[0].size(), 0xFFFF'FFFF);
+    vector<size_t> row(blocks[0].size(), AOC_INF);
     vector<vector<size_t>> grid(blocks.size(), row);
 
-    for (auto node: nodes)
+    for (auto [v, d]: dist)
     {
-        auto [row, col, dir, cnt] = node;
-        if (heat_map[node] > 0)
-            grid[row][col] = min(grid[row][col], heat_map[node]); 
+        auto [row, col, dir, cnt] = v;
+        grid[row][col] = min(grid[row][col], d);
     }
 
-    for (auto r: aoc::range(grid.size()))
+    for (auto r: aoc::range(blocks.size()))
     {
-        for (auto c: aoc::range(grid[0].size()))
+        for (auto c: aoc::range(blocks[0].size()))
         {
-            char buffer[32];
-            snprintf(buffer, 32, "%5ld ", grid[r][c]);
-            cout << buffer;
+            cout << grid[r][c] << " ";            
         }
         cout << "\n";
     }
@@ -101,7 +101,7 @@ void run(const char* filename)
 {
     auto lines = aoc::read_lines(filename, aoc::Blanks::Suppress); 
 
-    set<Node> nodes;
+    Vertices vertices;
     // Expand each node into a set of 12 nodes using the direction and count to differentiate them. 
     // The idea is that, for example, you cannot go left from a node whose left count is 3.
     for (auto r: aoc::range(lines.size()))
@@ -111,10 +111,10 @@ void run(const char* filename)
             // For the count of steps 1, 2, 3 - 1-based.
             for (auto i: aoc::range(1, 4))
             {
-                nodes.insert(Node{r, c, Left,  i});
-                nodes.insert(Node{r, c, Right, i});
-                nodes.insert(Node{r, c, Up,    i});
-                nodes.insert(Node{r, c, Down,  i});
+                vertices.insert(Vertex{r, c, Left,  i});
+                vertices.insert(Vertex{r, c, Right, i});
+                vertices.insert(Vertex{r, c, Up,    i});
+                vertices.insert(Vertex{r, c, Down,  i});
             }
         }
     }
@@ -122,73 +122,77 @@ void run(const char* filename)
     // Create a set of edges to connect the new nodes. These capture the constraint about 3 moves.
     // The idea is that, for example going left from {r, c, h, Left, 1} will go to {r, c-1, h, Left, 2}.
     // But going left from {r, c, h, Left, 3} is not possible because there is no edge. 
-    map<Node, map<Dir, Node>> edges;
-    for (auto node: nodes)
+    Edges edges;
+    for (auto v: vertices)
     {
-        auto [row, col, dir, cnt] = node;
+        auto [row, col, dir, cnt] = v;
 
         // Left
         if (col > 0) 
         {
+            auto cost = lines[row][col-1] - '0';
             switch (dir)
             {
                 case Left:
-                    if (cnt < 3) edges[node][Left] = Node{row, col-1, Left, cnt+1};
+                    if (cnt < 3) edges[v].push_back({Vertex{row, col-1, Left, cnt+1}, cost});
                     break; 
                 //case Right:
                 case Up:
                 case Down:
-                    edges[node][Left] = Node{row, col-1, Left, 1};
+                    edges[v].push_back({Vertex{row, col-1, Left, 1}, cost});
             }
         }
 
         // Right
         if ((col+1) < lines[0].size())
         {
+            auto cost = lines[row][col+1] - '0';
             switch (dir)
             {
                 case Right:
-                    if (cnt < 3) edges[node][Right] = Node{row, col+1, Right, cnt+1}; 
+                    if (cnt < 3) edges[v].push_back({Vertex{row, col+1, Right, cnt+1}, cost});
                     break; 
                 //case Left:
                 case Up:
                 case Down:
-                    edges[node][Right] = Node{row, col+1, Right, 1};
+                    edges[v].push_back({Vertex{row, col+1, Right, 1}, cost});
             }
         }
 
         // Up
         if (row > 0) 
         {
+            auto cost = lines[row-1][col] - '0';
             switch (dir)
             {
                 case Up:
-                    if (cnt < 3) edges[node][Up] = Node{row-1, col, Up, cnt+1}; 
+                    if (cnt < 3) edges[v].push_back({Vertex{row-1, col, Up, cnt+1}, cost});
                     break; 
                 //case Down:
                 case Left:
                 case Right:
-                    edges[node][Up] = Node{row-1, col, Up, 1};
+                    edges[v].push_back({Vertex{row-1, col, Up, 1}, cost});
             }
         }
 
         // Down
         if ((row+1) < lines.size()) 
         {
+            auto cost = lines[row+1][col] - '0';
             switch (dir)
             {
                 case Down:
-                    if (cnt < 3) edges[node][Down] = Node{row+1, col, Down, cnt+1}; 
+                    if (cnt < 3) edges[v].push_back({Vertex{row+1, col, Down, cnt+1}, cost});
                     break; 
                 //case Up:
                 case Left:
                 case Right:
-                   edges[node][Down] = Node{row+1, col, Down, 1};
+                   edges[v].push_back({Vertex{row+1, col, Down, 1}, cost});
             }
         }
     }
 
-    auto p1 = part1(lines, nodes, edges); // 1225 too high
+    auto p1 = part1(lines, vertices, edges); // 1225 too high
     cout << "Part1: " << p1 << '\n';
     //aoc::check_result(p1, 0);
 
