@@ -48,18 +48,15 @@ size_t accept_or_reject(T& flows, const string& name, const U& part)
 
 struct Range
 {
-    size_t min_x{1};
-    size_t min_m{1};
-    size_t min_a{1};
-    size_t min_s{1};
-
-    size_t max_x{4000};
-    size_t max_m{4000};
-    size_t max_a{4000};
-    size_t max_s{4000};
+    pair<size_t, size_t> x{0, 4000};
+    pair<size_t, size_t> m{0, 4000};
+    pair<size_t, size_t> a{0, 4000};
+    pair<size_t, size_t> s{0, 4000};
 };
 
 
+// Pretty sure I made this much harder than it needed to be. Very fiddly making sure the 
+// volume shrinkage is cumulative during the application of rules for a work flow.
 template <typename T>
 size_t accept_or_reject2(T& flows, const string& name, Range& range)
 {
@@ -68,12 +65,28 @@ size_t accept_or_reject2(T& flows, const string& name, Range& range)
 
     if (name == "A")
     {
-        auto [min_x, min_m, min_a, min_s, max_x, max_m, max_a, max_s] = range;
-        return (max_x-min_x+1) * (max_m-min_m+1) * (max_a-min_a+1) * (max_s-min_s+1);
+        auto [x, m, a, s] = range;
+        auto [x1, x2] = x;
+        auto [m1, m2] = m;
+        auto [a1, a2] = a;
+        auto [s1, s2] = s;
+        auto vol = (x2-x1) * (m2-m1) * (a2-a1) * (s2-s1);
+        return vol;
     }
 
     size_t result = 0;
-    Range range3 = range;
+    Range range2 = range;
+
+    auto intersect = [](pair<size_t, size_t> a, pair<size_t, size_t> b)
+    {
+        auto [a1, a2] = a;
+        auto [b1, b2] = b;
+
+        auto c1 = max(a1, b1);
+        auto c2 = min(a2, b2);
+        c1 = min(c1, c2);
+        return make_pair(c1, c2); 
+    };
 
     const auto& rules = flows[name];
     for (const auto& rule: rules)
@@ -85,34 +98,34 @@ size_t accept_or_reject2(T& flows, const string& name, Range& range)
             {
                 case 'x':
                 {
-                    Range range2 = range3;
-                    range2.min_x = max(range2.min_x, num+1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.max_x = min(range3.max_x, num);
+                    Range range3 = range2;
+                    range3.x = intersect(range2.x, {num, 4000});
+                    range2.x = intersect(range2.x, {0, num});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
                 case 'm':
                 {
-                    Range range2 = range3;
-                    range2.min_m = max(range2.min_m, num+1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.max_m = min(range3.max_m, num);
+                    Range range3 = range2;
+                    range3.m = intersect(range2.m, {num, 4000});
+                    range2.m = intersect(range2.m, {0, num});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
                 case 'a':
                 {
-                    Range range2 = range3;
-                    range2.min_a = max(range2.min_a, num+1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.max_a = min(range3.max_a, num);
+                    Range range3 = range2;
+                    range3.a = intersect(range2.a, {num, 4000});
+                    range2.a = intersect(range2.a, {0, num});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
                 case 's':
                 {
-                    Range range2 = range3;
-                    range2.min_s = max(range2.min_s, num+1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.max_s = min(range3.max_s, num);
+                    Range range3 = range2;
+                    range3.s = intersect(range2.s, {num, 4000});
+                    range2.s = intersect(range2.s, {0, num});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
             }
@@ -124,41 +137,41 @@ size_t accept_or_reject2(T& flows, const string& name, Range& range)
             {
                 case 'x':
                 {
-                    Range range2 = range3;
-                    range2.max_x = min(range2.max_x, num-1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.min_x = max(range3.min_x, num);
+                    Range range3 = range2;
+                    range3.x = intersect(range2.x, {0, num-1});
+                    range2.x = intersect(range2.x, {num-1, 4000});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
                 case 'm':
                 {
-                    Range range2 = range3;
-                    range2.max_m = min(range2.max_m, num-1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.min_m = max(range3.min_m, num);
+                    Range range3 = range2;
+                    range3.m = intersect(range2.m, {0, num-1});
+                    range2.m = intersect(range2.m, {num-1, 4000});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
                 case 'a':
                 {
-                    Range range2 = range3;
-                    range2.max_a = min(range2.max_a, num-1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.min_a = max(range3.min_a, num);
+                    Range range3 = range2;
+                    range3.a = intersect(range2.a, {0, num-1});
+                    range2.a = intersect(range2.a, {num-1, 4000});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
                 case 's':
                 {
-                    Range range2 = range3;
-                    range2.max_s = min(range2.max_s, num-1);
-                    result += accept_or_reject2(flows, dst, range2);
-                    range3.min_s = max(range3.min_s, num);
+                    Range range3 = range2;
+                    range3.s = intersect(range2.s, {0, num-1});
+                    range2.s = intersect(range2.s, {num-1, 4000});
+                    result += accept_or_reject2(flows, dst, range3);
                     break;
                 }
             }
         }
         else 
         {
-            result += accept_or_reject2(flows, rule, range);
+            result += accept_or_reject2(flows, rule, range2);
         }
     }
 
