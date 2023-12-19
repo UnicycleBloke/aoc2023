@@ -33,14 +33,11 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
 
     // The set of vertices which have not yet been visited.
     set<Vertex> queue = vertices;
-    // for (auto v: vertices)
-    // {
-    //     queue.insert(v);
-    // }
 
     while (queue.size() > 0)
     {
-        cout << queue.size() << " ";
+        if ((queue.size() % 100) == 0)
+            cout << queue.size() << endl;
 
         // Find the vertex in the queue with the lowest distance from the source.
         // Default to the first item in the map in case all are infinity - is this possible?
@@ -65,6 +62,7 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
         // Mark the vertex we just dealt with as finished/visited.
         queue.erase(min_v);
     }
+
 
     vector<size_t> row(blocks[0].size(), AOC_INF);
     vector<vector<size_t>> grid(blocks.size(), row);
