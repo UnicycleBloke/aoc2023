@@ -34,6 +34,11 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
     // The set of vertices which have not yet been visited.
     set<Vertex> queue = vertices;
 
+    ///////////////////////////////////////////////////////////////
+    // Can we index the vertices so that dist can be a vector?
+    // Can we make queue into a priority queue with the shortest at the front?
+    ///////////////////////////////////////////////////////////////
+
     while (queue.size() > 0)
     {
         if ((queue.size() % 100) == 0)
@@ -107,7 +112,7 @@ void run(const char* filename)
         for (auto c: aoc::range(lines[0].size()))
         {
             // For the count of steps 1, 2, 3 - 1-based.
-            for (auto i: aoc::range(1, 4))
+            for (auto i: aoc::range(1, 11))
             {
                 vertices.insert(Vertex{r, c, Left,  i});
                 vertices.insert(Vertex{r, c, Right, i});
@@ -120,6 +125,7 @@ void run(const char* filename)
     // Create a set of edges to connect the new nodes. These capture the constraint about 3 moves.
     // The idea is that, for example going left from {r, c, h, Left, 1} will go to {r, c-1, h, Left, 2}.
     // But going left from {r, c, h, Left, 3} is not possible because there is no edge. 
+
     Edges edges;
     for (auto v: vertices)
     {
@@ -132,12 +138,18 @@ void run(const char* filename)
             switch (dir)
             {
                 case Left:
-                    if (cnt < 3) edges[v].push_back({Vertex{row, col-1, Left, cnt+1}, cost});
+                    if (cnt < 10) edges[v].push_back({Vertex{row, col-1, Left, cnt+1}, cost});
                     break; 
                 //case Right:
                 case Up:
                 case Down:
-                    edges[v].push_back({Vertex{row, col-1, Left, 1}, cost});
+                    if (col > 3)
+                    {
+                        cost += lines[row][col-2] - '0';
+                        cost += lines[row][col-3] - '0';
+                        cost += lines[row][col-4] - '0';
+                        edges[v].push_back({Vertex{row, col-4, Left, 4}, cost});
+                    } 
             }
         }
 
@@ -148,12 +160,18 @@ void run(const char* filename)
             switch (dir)
             {
                 case Right:
-                    if (cnt < 3) edges[v].push_back({Vertex{row, col+1, Right, cnt+1}, cost});
+                    if (cnt < 10) edges[v].push_back({Vertex{row, col+1, Right, cnt+1}, cost});
                     break; 
                 //case Left:
                 case Up:
                 case Down:
-                    edges[v].push_back({Vertex{row, col+1, Right, 1}, cost});
+                    if ((col+4) < lines[0].size())
+                    {
+                        cost += lines[row][col+2] - '0';
+                        cost += lines[row][col+3] - '0';
+                        cost += lines[row][col+4] - '0';
+                        edges[v].push_back({Vertex{row, col+4, Right, 4}, cost});
+                    } 
             }
         }
 
@@ -164,12 +182,18 @@ void run(const char* filename)
             switch (dir)
             {
                 case Up:
-                    if (cnt < 3) edges[v].push_back({Vertex{row-1, col, Up, cnt+1}, cost});
+                    if (cnt < 10) edges[v].push_back({Vertex{row-1, col, Up, cnt+1}, cost});
                     break; 
                 //case Down:
                 case Left:
                 case Right:
-                    edges[v].push_back({Vertex{row-1, col, Up, 1}, cost});
+                    if (row > 3)
+                    {
+                        cost += lines[row-2][col] - '0';
+                        cost += lines[row-3][col] - '0';
+                        cost += lines[row-4][col] - '0';
+                        edges[v].push_back({Vertex{row-4, col, Up, 4}, cost});
+                    } 
             }
         }
 
@@ -180,12 +204,18 @@ void run(const char* filename)
             switch (dir)
             {
                 case Down:
-                    if (cnt < 3) edges[v].push_back({Vertex{row+1, col, Down, cnt+1}, cost});
+                    if (cnt < 10) edges[v].push_back({Vertex{row+1, col, Down, cnt+1}, cost});
                     break; 
                 //case Up:
                 case Left:
                 case Right:
-                   edges[v].push_back({Vertex{row+1, col, Down, 1}, cost});
+                    if ((row+4) < lines.size())
+                    {
+                        cost += lines[row+2][col] - '0';
+                        cost += lines[row+3][col] - '0';
+                        cost += lines[row+4][col] - '0';
+                        edges[v].push_back({Vertex{row+4, col, Down, 4}, cost});
+                    } 
             }
         }
     }
