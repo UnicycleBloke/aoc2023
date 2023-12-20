@@ -28,11 +28,11 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
     }
     dist[source] = 0;
 
-    // Create a map of predecessor nodes. We don't really need this. 
-    map<Vertex, Vertex> pred;
+    map<Vertex, bool> visited;
 
     // The set of vertices which have not yet been visited.
-    set<Vertex> queue = vertices;
+    set<Vertex> queue; // = vertices;
+    queue.insert(source);
 
     ///////////////////////////////////////////////////////////////
     // Can we index the vertices so that dist can be a vector?
@@ -41,8 +41,10 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
 
     while (queue.size() > 0)
     {
-        if ((queue.size() % 100) == 0)
-            cout << queue.size() << endl;
+        // if ((queue.size() % 100) == 0)
+        //     cout << "visited " << visited.size() << "/" << vertices.size() << " q=" << queue.size() << endl;
+        if ((visited.size() % 100) == 0)
+            cout << "visited " << visited.size() << "/" << vertices.size() << " q=" << queue.size() << endl;
 
         // Find the vertex in the queue with the lowest distance from the source.
         // Default to the first item in the map in case all are infinity - is this possible?
@@ -57,15 +59,17 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
             }
         }
 
+        // Mark the vertex we just dealt with as finished/visited.
+        visited[min_v] = true;
+        queue.erase(min_v);
+
         // Go through the outbound edges from the minimum distance vertex.
         for (auto [v2, cost]: edges[min_v])
         {
             dist[v2] = min(dist[v2], dist[min_v] + cost);
-            pred[v2] = min_v;
+            if (!visited[v2])            
+                queue.insert(v2);
         }
-
-        // Mark the vertex we just dealt with as finished/visited.
-        queue.erase(min_v);
     }
 
 
