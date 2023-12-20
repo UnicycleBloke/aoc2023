@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <list>
 #include <array>
 #include <queue>
 #include <stack>
