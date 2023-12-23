@@ -100,33 +100,14 @@ int all_settled_below_height(const vector<Brick>& bricks, map<size_t, bool>& set
 }
 
 
-// Keep the set of fallers - check if one below not in the set.
 
-int count_the_fallers(const vector<Brick>& bricks, 
-    map<size_t, set<size_t>>& above, map<size_t, set<size_t>>& below, size_t b)
-{
-    int count = 0;
-    for (auto b1: above[b])
-        if (below[b1].size() < 2)
-            count += count_the_fallers(bricks, above, below, b1);
-    return count;
-}
 
-template <typename T, typename U>
-auto part1(T bricks, const U& dim)
+template <typename T>
+auto part1(T bricks)
 {
     aoc::timer timer;
 
     map<size_t, bool> settled;
-
-    // for (auto b: aoc::range(bricks.size()))
-    // {
-    //     auto [x1, x2, y1, y2, z1, z2] = bricks[b];
-    //     cout << x1 << ":" << x2 << " ";
-    //     cout << y1 << ":" << y2 << " ";
-    //     cout << z1 << ":" << z2 << "\n";
-    // }
-    // cout << "\n";
 
     while (true)
     {
@@ -164,44 +145,47 @@ auto part1(T bricks, const U& dim)
         }
     }
 
-    for (auto b: aoc::range(bricks.size()))
-    {
-        cout << b << "  ";
-        cout << "below ";
-        for (auto c: below[b]) cout << c << " ";
-        cout << "above ";
-        for (auto c: above[b]) cout << c << " ";
-        cout << "\n";
-    }
-
-    int count = 0;
+    size_t p1 = 0;
     for (auto b: aoc::range(bricks.size()))
     {
         if (above[b].size() == 0) 
-        {
-            cout << b << " yes\n";            
-            ++count;
-        }
+            ++p1;
         else
         {
             bool ok = true;
             for (auto b1: above[b])
                 ok &= (below[b1].size() >= 2);
-            count += ok;
-            cout << b << (ok ? " yes\n" : " no\n");
+            p1 += ok;
         }
+    }   
+    cout << "p1=" << p1 << "\n";
+
+    size_t p2 = 0;
+    for (auto b: aoc::range(bricks.size()))
+    {
+        set<size_t> taken;
+        taken.insert(b);
+        int prev = 0;
+
+        while (prev < taken.size())
+        {
+            prev = taken.size();
+
+            for (auto c: aoc::range(bricks.size()))
+            {
+                bool falling = (below[c].size() > 0);
+                for (auto d: below[c])
+                    falling &= (taken.find(d) != taken.end());
+                if (falling)
+                    taken.insert(c);
+            } 
+        }
+
+        p2 += (taken.size() - 1);
     }
+    cout << "p2=" << p2 << "\n";
 
-
-    // for (auto b: aoc::range(bricks.size()))
-    // {
-    //     auto [x1, x2, y1, y2, z1, z2] = bricks[b];
-    //     cout << x1 << ":" << x2 << " ";
-    //     cout << y1 << ":" << y2 << " ";
-    //     cout << z1 << ":" << z2 << "\n";
-    // }
-
-    return count;
+    return make_pair(p1, p2);
 }
 
 
@@ -236,15 +220,11 @@ void run(const char* filename)
         max_z = max(max_z, max(z1, z2));
     }
 
-    auto dim = make_tuple(max_x, max_y, max_z);
-
-    auto p1 = part1(bricks, dim);
+    auto [p1, p2] = part1(bricks);
     cout << "Part1: " << p1 << '\n';
-    //aoc::check_result(p1, 0);
-
-    auto p2 = part2(lines);
+    aoc::check_result(p1, 454U);
     cout << "Part2: " << p2 << '\n';
-    //aoc::check_result(p2, 0);
+    aoc::check_result(p2, 74287U);
 }
 
 
