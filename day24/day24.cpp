@@ -188,42 +188,38 @@ bool intersects(T& input, Integer vxr, Integer vyr, size_t i, size_t j, Rock& ro
     Integer b2 = vy2 - vyr;
     Integer c2 = py1 - py2;
 
-    // TODO is one of these early returns overconstraining my acceptance of a potential solution.
-    // The code works for Google AoC account input but not Github AoC account input.
+    // Cramer's rule for solving a system of equations.
+    Integer den  = det(a1, b1, a2, b2);
+    Integer num1 = det(c1, b1, c2, b2);
+    Integer num2 = det(a1, c1, a2, c2);
 
-    // The denominatior for calculating t1 cannot be zero - no solution.
-    Integer den = det(a1, b1, a2, b2);
-    //if (den == 0) cout << "Zero denominator!\n";
-    if (den == 0) return false;
+    // When the determinant of the coefficient matrix D is zero, the formulas of Cramer’s rule are 
+    // undefined. In this case, the system is either dependent or inconsistent depending on the values 
+    // of Dx and Dy. When D=0 and both Dx=0 and Dy=0 the system is dependent. When D=0 and either Dx or Dy
+    // is nonzero then the system is inconsistent.
+    if (den == 0)
+    {
+        // Dependent system - infinitely many solutions. Return true as if we had found a solution. 
+        // The calling code passed in the valid solution so it will all work out.
+        return (num1 == 0) && (num2 == 0);
+    }
 
-    // I'm not sure this is required but all the intersections appear to have 
-    // integer times. I switched to this code from using doubles. 
-    Integer num = det(c1, b1, c2, b2);
-    //if ((num % den) != 0) cout << "Non-integral t1\n";
-    //if ((num % den) != 0) return false;
-    Double t1 = num;
+    Double t1 = num1;
     t1 /= den;
     // We only care about solutions in the future.
-    //if (t1 < 0) return false;
+    if (t1 < 0) return false;
 
-    // The denominator for calculating t2 cannot be zero - no solution. 
-    //if (b1 != 0) cout << "Zero divisor!\n";
-    if (b1 == 0) return false;
-    Double t2 = c1 - a1 * t1;
-    //if ((t2 % b1) != 0) cout << "Non-integral t2";
-    //if ((t2 % b1) != 0) return false;
-    t2 /= b1; 
+    Double t2 = num2;
+    t2 /= den;
     // We only care about solutions in the future.
-    //if (t2 < 0) return false;
+    if (t2 < 0) return false;
 
     // Oops! This might be overconstrained as we could hit two hailstones at the same time.
     // Actually this should not be possible. We are told none of the hailstones hit each other.
-    //if (t1 == t2) cout << "Collision!\n"; // This is not printed
     if (t1 == t2) return false;
-    Double vzr = pz1 - pz2 + vz1 * t1 - vz2 * t2;
+
     // The rock's z velocity must be integral.
-    //if ((vzr % (t1 - t2)) != 0) cout << "Non-integral vz";
-    //if ((vzr % (t1 - t2)) != 0) return false;
+    Double vzr = pz1 - pz2 + vz1 * t1 - vz2 * t2;
     vzr /= (t1 - t2); 
     Double temp;
     if (!is_integer(vzr, temp)) return false;
@@ -236,14 +232,14 @@ bool intersects(T& input, Integer vxr, Integer vyr, size_t i, size_t j, Rock& ro
     Double pzr = pz1 + (vz1 - vzr) * t1;
     if (!is_integer(pzr, temp)) return false;
 
-    cout << fixed << setprecision(0) << px2 << " " << py2 << " " << pz2 << " @ ";
-    cout << vx2 << " " << vy2 << " " << vz2 << " ";
-    cout << "time: " << t2 << "\n";
-    cout << fixed << setprecision(0) << pxr << " " << pyr << " " << pzr << " @ ";
-    cout << vxr << " " << vyr << " " << vzr << "\n\n";
+    // cout << fixed << setprecision(0) << px2 << " " << py2 << " " << pz2 << " @ ";
+    // cout << vx2 << " " << vy2 << " " << vz2 << " ";
+    // cout << "time: " << t2 << "\n";
+    // cout << fixed << setprecision(0) << pxr << " " << pyr << " " << pzr << " @ ";
+    // cout << vxr << " " << vyr << " " << vzr << " sum=" << (pxr+pyr+pzr) << "\n\n";
 
     // Account for rounding of these possibly non-integer values. Already got this above...
-    rock = make_tuple(pxr+0.5, pyr+0.5, pzr+0.5, vxr+0.5, vyr+0.5, vzr+0.5);
+    rock = make_tuple(pxr, pyr, pzr, vxr, vyr, vzr);
     return true;
 }
 
@@ -253,7 +249,6 @@ auto part2(T& input)
 {
     aoc::timer timer;
 
-    //Spiral spiral{100000};
     Spiral spiral{0};
     int loops = 0; 
 
@@ -263,23 +258,23 @@ auto part2(T& input)
 
         if (loops < spiral.loops())
         {
-            cout << "loops=" << spiral.loops() << "\n";
+            // cout << "loops=" << spiral.loops() << "\n";
             loops = spiral.loops();
         }
 
         constexpr size_t LINE0 = 0;
-        constexpr size_t LINE1 = 1;
+        constexpr size_t LINE1 = 2;
         static_assert(LINE0 != LINE1);
 
         Rock rock1;        
         if (intersects(input, vxr, vyr, LINE0, LINE1, rock1))
         {
             bool all_intersect = true;
-            for (auto j: aoc::range(0U, input.size()))
+            for (auto j: aoc::range(1U, input.size()))
             {
                 if ((j == LINE0) || (j == LINE1)) continue;
 
-                Rock rock2;        
+                Rock rock2 = rock1;        
                 if (!intersects(input, vxr, vyr, LINE0, j, rock2) || (rock1 != rock2))
                 {
                     all_intersect = false;
@@ -290,8 +285,8 @@ auto part2(T& input)
             if (all_intersect)
             {
                 auto [pxr, pyr, pzr, vxr, vyr, vzr] = rock1;
-                cout << vxr << " " << vyr << " " << vzr << "\n";
-                cout << pxr << " " << pyr << " " << pzr << "\n\n";
+                // cout << vxr << " " << vyr << " " << vzr << "\n";
+                // cout << pxr << " " << pyr << " " << pzr << "\n\n";
                 return pxr + pyr + pzr;
             }
         }
@@ -311,7 +306,7 @@ void run(const char* filename)
 
     auto p2 = part2(lines);
     cout << "Part2: " << p2 << '\n';
-    aoc::check_result(p2, 0);
+    aoc::check_result(p2, 808107741406756);
 }
 
 
