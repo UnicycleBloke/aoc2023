@@ -17,7 +17,7 @@ auto part1(const T& blocks, const Vertices& vertices, Edges& edges)
 
     aoc::timer timer;
 
-    Vertex source{0, 0, Right, 1};
+    Vertex source{0, 0, Right, 4};
 
     // Initialise a map of distances from the source. 
     // Everything is infinity for now except the source itself, which is zero.
@@ -116,7 +116,8 @@ void run(const char* filename)
         for (auto c: aoc::range(lines[0].size()))
         {
             // For the count of steps 1, 2, 3 - 1-based.
-            for (auto i: aoc::range(1, 11))
+            //for (auto i: aoc::range(1, 11))
+            for (auto i: aoc::range(4, 11))
             {
                 vertices.insert(Vertex{r, c, Left,  i});
                 vertices.insert(Vertex{r, c, Right, i});
